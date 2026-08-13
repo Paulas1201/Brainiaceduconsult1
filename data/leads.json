@@ -1,0 +1,18 @@
+[
+  {
+    "id": "lead_1786052643877_xjb33i",
+    "name": "Automated System Test",
+    "email": "test@brainiaceduconsult.com",
+    "whatsapp": "08131055940",
+    "examType": "UTME/JAMB",
+    "learningMode": "Online",
+    "subjects": [
+      "Mathematics",
+      "Physics",
+      "Chemistry"
+    ],
+    "notes": "Integration verification ping",
+    "createdAt": "2026-08-06T21:44:03.877Z",
+    "syncedToGoogleSheet": true
+  }
+]

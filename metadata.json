@@ -1,0 +1,6 @@
+{
+  "name": "Brainiac Educonsult",
+  "description": "Sales page and lead capture platform for Brainiac Educonsult tutorial center with automatic Google Sheets syncing and WhatsApp messaging.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
