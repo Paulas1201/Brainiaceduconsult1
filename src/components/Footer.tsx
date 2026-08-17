@@ -20,15 +20,25 @@ export const Footer: React.FC<FooterProps> = ({
           
           {/* Brand Col */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow-md shadow-amber-500/20">
-                <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                  <GraduationCap className="w-5 h-5 text-amber-400" />
-                </div>
+            <div className="flex items-center gap-3.5">
+              <div className="relative flex items-center justify-center">
+                <img
+                  src={COMPANY_INFO.logoUrl}
+                  alt={COMPANY_INFO.name}
+                  className="h-14 w-14 sm:h-16 sm:w-16 object-contain drop-shadow-md"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = COMPANY_INFO.logoDirectUrl;
+                  }}
+                />
               </div>
-              <span className="font-extrabold text-lg text-white tracking-tight">
-                {COMPANY_INFO.name}
-              </span>
+              <div>
+                <span className="font-extrabold text-xl text-white tracking-tight block">
+                  {COMPANY_INFO.name}
+                </span>
+                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                  Tutorial &amp; Prep Center
+                </span>
+              </div>
             </div>
 
             <p className="text-xs leading-relaxed text-slate-400">

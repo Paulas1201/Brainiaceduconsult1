@@ -120,13 +120,20 @@ export const LeadModal: React.FC<LeadModalProps> = ({ isOpen, onClose, onLeadSub
         
         {/* Modal Header */}
         <div className="p-6 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
-              <GraduationCap className="w-6 h-6" />
+          <div className="flex items-center gap-3.5">
+            <div className="relative flex items-center justify-center">
+              <img
+                src={COMPANY_INFO.logoUrl}
+                alt={COMPANY_INFO.name}
+                className="w-11 h-11 object-contain drop-shadow"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = COMPANY_INFO.logoDirectUrl;
+                }}
+              />
             </div>
             <div>
               <h3 className="text-xl font-bold text-white">Enrollment Lead Capture</h3>
-              <p className="text-xs text-amber-400">Brainiac Educonsult Academic Portal</p>
+              <p className="text-xs text-amber-400 font-medium">Brainiac Educonsult Academic Portal</p>
             </div>
           </div>
 

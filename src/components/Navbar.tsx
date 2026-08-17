@@ -13,23 +13,29 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-slate-900/90 border-b border-slate-800 text-white transition-all">
+    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-slate-900/95 border-b border-slate-800 text-white transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-20 sm:h-24">
           
           {/* Logo & Branding */}
-          <a href="#" className="flex items-center gap-3 group">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
-              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                <GraduationCap className="w-6 h-6 text-amber-400" />
-              </div>
+          <a href="#" className="flex items-center gap-3.5 group py-1">
+            <div className="relative flex items-center justify-center group-hover:scale-105 transition-transform">
+              <img
+                src={COMPANY_INFO.logoUrl}
+                alt={COMPANY_INFO.name}
+                className="h-14 w-14 sm:h-16 sm:w-16 lg:h-18 lg:w-18 object-contain drop-shadow-md"
+                onError={(e) => {
+                  // Fallback to direct url if local fails
+                  (e.target as HTMLImageElement).src = COMPANY_INFO.logoDirectUrl;
+                }}
+              />
             </div>
             <div>
-              <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-amber-200 bg-clip-text text-transparent">
+              <span className="font-extrabold text-lg sm:text-2xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-amber-200 bg-clip-text text-transparent block leading-tight">
                 {COMPANY_INFO.name}
               </span>
-              <span className="block text-[11px] font-medium text-amber-400/90 tracking-wider uppercase">
-                Tutorial & Prep Center
+              <span className="block text-[11px] sm:text-xs font-bold text-amber-400 tracking-wider uppercase mt-0.5">
+                Tutorial &amp; Prep Center
               </span>
             </div>
           </a>

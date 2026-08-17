@@ -2,6 +2,8 @@ import { SubjectItem } from '../types';
 
 export const COMPANY_INFO = {
   name: 'Brainiac Educonsult',
+  logoUrl: '/logo.png',
+  logoDirectUrl: 'https://i.ibb.co/SDbkFWBX/Brainiac-logo-transparent.png',
   slogan: 'Building Brighter Minds, Creating Better Futures.',
   primaryPhone: '08131055940',
   secondaryPhone: '08137755594',

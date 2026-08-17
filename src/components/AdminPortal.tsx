@@ -285,16 +285,28 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
 
               <div className="h-6 w-px bg-slate-800 hidden sm:block" />
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-lg sm:text-xl text-white tracking-tight">
-                    {COMPANY_INFO.name}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-bold tracking-wider uppercase border border-amber-500/30">
-                    Admin Portal
-                  </span>
+              <div className="flex items-center gap-3">
+                <div className="relative flex items-center justify-center">
+                  <img
+                    src={COMPANY_INFO.logoUrl}
+                    alt={COMPANY_INFO.name}
+                    className="h-10 w-10 sm:h-12 sm:w-12 object-contain drop-shadow"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = COMPANY_INFO.logoDirectUrl;
+                    }}
+                  />
                 </div>
-                <p className="text-xs text-slate-400">Backend Lead Management & Google Sheet Integrations</p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-lg sm:text-xl text-white tracking-tight">
+                      {COMPANY_INFO.name}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-bold tracking-wider uppercase border border-amber-500/30">
+                      Admin Portal
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">Backend Lead Management &amp; Google Sheet Integrations</p>
+                </div>
               </div>
             </div>
 
