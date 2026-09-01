@@ -132,7 +132,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({ isOpen, onClose, onLeadSub
               />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white">Enrollment Lead Capture</h3>
+              <h3 className="text-xl font-bold text-white">Student Enrollment & Registration</h3>
               <p className="text-xs text-amber-400 font-medium">Brainiac Educonsult Academic Portal</p>
             </div>
           </div>
@@ -301,7 +301,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({ isOpen, onClose, onLeadSub
                 className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-base shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 transition-all transform active:scale-98 cursor-pointer disabled:opacity-50"
               >
                 {isSubmitting ? (
-                  <span>Processing Lead...</span>
+                  <span>Processing Application...</span>
                 ) : (
                   <>
                     <Send className="w-5 h-5" />
@@ -321,11 +321,11 @@ export const LeadModal: React.FC<LeadModalProps> = ({ isOpen, onClose, onLeadSub
               <div>
                 <h4 className="text-2xl font-black text-white">Enrollment Request Received!</h4>
                 <p className="text-sm text-slate-300 mt-2 max-w-md mx-auto leading-relaxed">
-                  Your lead details have been logged. Click below to chat directly with the Brainiac Educonsult admissions counselor on WhatsApp.
+                  Your registration has been received. Click below to chat directly with the Brainiac Educonsult admissions counselor on WhatsApp.
                 </p>
               </div>
 
-              {/* Lead Summary Box */}
+              {/* Application Summary Box */}
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-left text-xs space-y-2 text-slate-300 max-w-md mx-auto">
                 <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
                   <span className="text-slate-400">Candidate Name:</span>

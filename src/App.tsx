@@ -12,7 +12,6 @@ import { UrgencyCta } from './components/UrgencyCta';
 import { LeadModal } from './components/LeadModal';
 import { Footer } from './components/Footer';
 import { AdminPortal } from './components/AdminPortal';
-import { LiveRegistrationPopup } from './components/LiveRegistrationPopup';
 
 export default function App() {
   const [isAdminView, setIsAdminView] = useState(() => {
@@ -99,9 +98,6 @@ export default function App() {
         isOpen={isLeadModalOpen}
         onClose={handleCloseLeadModal}
       />
-
-      {/* Real-time Student Registration Activity Popup (Triggers every 1 minute) */}
-      <LiveRegistrationPopup onOpenLeadModal={handleOpenLeadModal} />
 
     </div>
   );
