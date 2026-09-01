@@ -1,5 +1,22 @@
 [
   {
+    "id": "lead_1788263181733_towdaq",
+    "name": "Verification Student",
+    "email": "student@example.com",
+    "whatsapp": "08131055940",
+    "examType": "UTME/JAMB",
+    "learningMode": "Physical Classes",
+    "subjects": [
+      "Mathematics",
+      "Physics",
+      "Chemistry"
+    ],
+    "notes": "Testing full sync cycle",
+    "createdAt": "2026-09-01T11:46:21.733Z",
+    "syncedToGoogleSheet": true,
+    "lastSyncMessage": "Row added to Google Sheet"
+  },
+  {
     "id": "lead_1786052643877_xjb33i",
     "name": "Automated System Test",
     "email": "test@brainiaceduconsult.com",

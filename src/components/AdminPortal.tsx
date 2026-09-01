@@ -1,62 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import { Lead } from '../types';
 import {
   Database,
   Table,
-  Search,
-  RefreshCw,
-  Download,
-  Trash2,
-  Phone,
-  MessageSquare,
   CheckCircle2,
   AlertCircle,
-  Clock,
-  ArrowLeft,
+  RefreshCw,
+  Search,
+  ExternalLink,
   Copy,
   Check,
-  ExternalLink,
-  ShieldCheck,
   Send,
-  SlidersHorizontal,
-  ChevronRight
+  Phone,
+  MessageSquare,
+  Trash2,
+  Download,
+  ShieldCheck,
+  Clock,
+  HelpCircle,
+  Sparkles,
+  ArrowLeft,
+  AlertTriangle
 } from 'lucide-react';
-import { getWhatsAppLink, getPhoneCallLink } from '../utils/whatsapp';
+import { Lead } from '../types';
 import { GOOGLE_APPS_SCRIPT_CODE, getStoredScriptUrl, saveStoredScriptUrl } from '../utils/googleScript';
+import { getWhatsAppLink, getPhoneCallLink } from '../utils/whatsapp';
 import { COMPANY_INFO } from '../data/copyData';
+import { GoogleSheetGuideModal } from './GoogleSheetGuideModal';
 
 interface AdminPortalProps {
-  onBackToWebsite: () => void;
+  onBackToWebsite?: () => void;
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => {
-  const [activeTab, setActiveTab] = useState<'leads' | 'gsheet' | 'test'>('leads');
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterExam, setFilterExam] = useState<string>('ALL');
   const [filterSync, setFilterSync] = useState<'ALL' | 'SYNCED' | 'UNSYNCED'>('ALL');
-
-  // GSheet config states
+  
+  // Google Sheet Webhook Config
   const [gsheetUrl, setGsheetUrl] = useState('');
   const [isSavingUrl, setIsSavingUrl] = useState(false);
   const [syncTestStatus, setSyncTestStatus] = useState<string | null>(null);
   const [syncTestSuccess, setSyncTestSuccess] = useState<boolean | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
-  const [copiedScript, setCopiedScript] = useState(false);
 
-  // Single lead action loading
-  const [resyncingId, setResyncingId] = useState<string | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-
-  // Test form state
-  const [testLeadName, setTestLeadName] = useState('Admin Live Test');
+  // Manual Test Lead State
+  const [testLeadName, setTestLeadName] = useState('Emmanuel Adebayo');
   const [testLeadPhone, setTestLeadPhone] = useState('08131055940');
-  const [testLeadExam, setTestLeadExam] = useState('WAEC');
+  const [testLeadExam, setTestLeadExam] = useState('JAMB / UTME');
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testResultMsg, setTestResultMsg] = useState<string | null>(null);
 
-  // Load leads from server
+  // Guide Modal State
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [copiedScript, setCopiedScript] = useState(false);
+
+  // Resync specific lead
+  const [resyncingId, setResyncingId] = useState<string | null>(null);
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [batchSyncMsg, setBatchSyncMsg] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Active View Tab
+  const [activeTab, setActiveTab] = useState<'leads' | 'gsheet' | 'test'>('leads');
+
+  // Fetch all leads from local backend server
   const fetchLeads = async () => {
     setLoading(true);
     try {
@@ -99,9 +108,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
     fetchGSheetConfig();
   }, []);
 
+  const isSpreadsheetLink = gsheetUrl.includes('docs.google.com/spreadsheets');
+  const isWebAppLink = gsheetUrl.includes('script.google.com/macros/s/') && gsheetUrl.includes('/exec');
+
   const handleSaveGSheetUrl = async () => {
     if (!gsheetUrl.trim()) {
       alert('Please enter a valid Google Apps Script Web App URL.');
+      return;
+    }
+
+    if (isSpreadsheetLink) {
+      alert('Notice: You entered a Google Sheets spreadsheet URL instead of an Apps Script Web App URL.\n\nPlease click "Setup Guide" to copy the 1-click script and deploy your Web App (ending in /exec).');
       return;
     }
 
@@ -119,7 +136,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
       const data = await res.json();
 
       if (data.tested) {
-        setSyncTestSuccess(data.success && !data.testResult.includes('non-200'));
+        setSyncTestSuccess(data.syncSuccess || (data.success && !data.testResult.includes('returned:')));
         setSyncTestStatus(data.testResult);
         setLastSyncTime(new Date().toLocaleTimeString());
       } else {
@@ -144,7 +161,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
       const data = await res.json();
       if (data.success) {
         setLeads((prev) =>
-          prev.map((l) => (l.id === leadId ? { ...l, syncedToGoogleSheet: true } : l))
+          prev.map((l) => (l.id === leadId ? { ...l, syncedToGoogleSheet: true, lastSyncMessage: data.message } : l))
         );
       } else {
         alert(data.message || 'Sync failed. Please verify your Google Apps Script Web App deployment.');
@@ -154,6 +171,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
       alert('Failed to connect to backend.');
     } finally {
       setResyncingId(null);
+    }
+  };
+
+  const handleSyncAllLeads = async () => {
+    setIsSyncingAll(true);
+    setBatchSyncMsg(null);
+    try {
+      const res = await fetch('/api/leads/sync-all', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBatchSyncMsg(data.message);
+        if (Array.isArray(data.leads)) {
+          setLeads(data.leads);
+        }
+      } else {
+        setBatchSyncMsg(`Sync error: ${data.error || 'Check Google Sheet config'}`);
+      }
+    } catch (err: any) {
+      setBatchSyncMsg(`Sync failed: ${err.message}`);
+    } finally {
+      setIsSyncingAll(false);
     }
   };
 
@@ -199,7 +239,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
         setTestResultMsg(
           data.lead.syncedToGoogleSheet
             ? 'Test lead created AND successfully pushed to Google Sheet!'
-            : 'Test lead created in local database, but Google Sheet sync returned false. Check your script permissions.'
+            : `Test lead saved in local database. Google Sheet result: ${data.lead.lastSyncMessage || 'Sync pending'}`
         );
         fetchLeads();
       }
@@ -249,39 +289,39 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
       l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.whatsapp.includes(searchTerm) ||
-      l.examType.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.subjects.some((s) => s.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesExam = filterExam === 'ALL' || l.examType.toLowerCase().includes(filterExam.toLowerCase());
+    const matchesExam = filterExam === 'ALL' || l.examType.includes(filterExam);
     const matchesSync =
-      filterSync === 'ALL'
-        ? true
-        : filterSync === 'SYNCED'
-        ? l.syncedToGoogleSheet
-        : !l.syncedToGoogleSheet;
+      filterSync === 'ALL' ||
+      (filterSync === 'SYNCED' && l.syncedToGoogleSheet) ||
+      (filterSync === 'UNSYNCED' && !l.syncedToGoogleSheet);
 
     return matchesSearch && matchesExam && matchesSync;
   });
 
   const totalSynced = leads.filter((l) => l.syncedToGoogleSheet).length;
+  const totalUnsynced = leads.length - totalSynced;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-16">
+    <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
       
-      {/* Top Admin Header */}
-      <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
+      {/* Top Bar */}
+      <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             
             <div className="flex items-center gap-4">
-              <button
-                onClick={onBackToWebsite}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
-                title="Return to Public Sales Page"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Back to Website</span>
-              </button>
+              {onBackToWebsite && (
+                <button
+                  onClick={onBackToWebsite}
+                  className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+                  title="Return to Public Website"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Back to Website</span>
+                </button>
+              )}
 
               <div className="h-6 w-px bg-slate-800 hidden sm:block" />
 
@@ -297,26 +337,30 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
                   />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-lg sm:text-xl text-white tracking-tight">
-                      {COMPANY_INFO.name}
+                  <h1 className="font-extrabold text-lg text-white tracking-tight flex items-center gap-2">
+                    <span>Staff Admin Portal</span>
+                    <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[10px] uppercase tracking-wider font-bold">
+                      Protected
                     </span>
-                    <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-bold tracking-wider uppercase border border-amber-500/30">
-                      Admin Portal
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400">Backend Lead Management &amp; Google Sheet Integrations</p>
+                  </h1>
+                  <p className="text-xs text-slate-400">Brainiac Educonsult Lead &amp; Google Sheet Hub</p>
                 </div>
               </div>
             </div>
 
-            {/* Quick Metrics & Actions */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsGuideOpen(true)}
+                className="px-3.5 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center gap-1.5 border border-emerald-500/30 transition-all cursor-pointer"
+              >
+                <HelpCircle className="w-4 h-4" />
+                <span className="hidden md:inline">Google Sheet Setup Guide</span>
+              </button>
+
               <button
                 onClick={fetchLeads}
-                disabled={loading}
-                className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
-                title="Refresh Data"
+                className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                title="Refresh Leads Data"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-400' : ''}`} />
               </button>
@@ -357,9 +401,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
             <div className="text-2xl font-black text-emerald-400">
               {totalSynced} <span className="text-xs text-slate-500 font-normal">/ {leads.length}</span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">
-              {leads.length > 0 ? `${Math.round((totalSynced / leads.length) * 100)}% auto-synced` : 'Awaiting entries'}
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-[11px] text-slate-500">
+                {leads.length > 0 ? `${Math.round((totalSynced / leads.length) * 100)}% synced` : 'Awaiting entries'}
+              </p>
+              {totalUnsynced > 0 && (
+                <button
+                  onClick={handleSyncAllLeads}
+                  disabled={isSyncingAll}
+                  className="text-[11px] text-amber-400 hover:underline font-bold cursor-pointer"
+                >
+                  {isSyncingAll ? 'Syncing...' : `Sync ${totalUnsynced} Pending`}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
@@ -368,13 +423,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
               <Table className="w-4 h-4 text-sky-400" />
             </div>
             <div className="flex items-center gap-1.5 mt-1">
-              <div className={`w-2.5 h-2.5 rounded-full ${gsheetUrl ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
+              <div className={`w-2.5 h-2.5 rounded-full ${gsheetUrl && !isSpreadsheetLink ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
               <span className="text-sm font-bold text-white">
-                {gsheetUrl ? 'Active Endpoint' : 'Not Connected'}
+                {gsheetUrl && !isSpreadsheetLink ? 'Active Webhook' : isSpreadsheetLink ? 'Invalid URL Type' : 'Not Connected'}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 mt-1 truncate">
-              {gsheetUrl ? 'Script configured' : 'Configure below'}
+              {gsheetUrl && !isSpreadsheetLink ? 'Google Apps Script configured' : 'Configure below'}
             </p>
           </div>
 
@@ -389,6 +444,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
             <p className="text-[11px] text-slate-500 mt-1">Real-time webhook sync</p>
           </div>
         </div>
+
+        {/* Batch Sync Notice */}
+        {batchSyncMsg && (
+          <div className="p-4 rounded-2xl bg-amber-950/60 border border-amber-800 text-amber-300 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>{batchSyncMsg}</span>
+            </div>
+            <button
+              onClick={() => setBatchSyncMsg(null)}
+              className="text-amber-400 hover:text-white font-bold cursor-pointer ml-4"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div className="flex border-b border-slate-800 gap-2">
@@ -471,6 +542,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
                   <option value="SYNCED">Synced to Google Sheet</option>
                   <option value="UNSYNCED">Unsynced / Pending</option>
                 </select>
+
+                {totalUnsynced > 0 && (
+                  <button
+                    onClick={handleSyncAllLeads}
+                    disabled={isSyncingAll}
+                    className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncingAll ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingAll ? 'Syncing All...' : `Sync All (${totalUnsynced})`}</span>
+                  </button>
+                )}
               </div>
 
             </div>
@@ -533,7 +615,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
                               onClick={() => handleResyncLead(lead.id)}
                               disabled={resyncingId === lead.id}
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-800/50 text-amber-400 text-xs font-semibold transition-colors cursor-pointer"
-                              title="Click to retry sending to Google Sheet"
+                              title={lead.lastSyncMessage || 'Click to retry sending to Google Sheet'}
                             >
                               <RefreshCw className={`w-3.5 h-3.5 ${resyncingId === lead.id ? 'animate-spin' : ''}`} />
                               <span>{resyncingId === lead.id ? 'Syncing...' : 'Pending (Retry)'}</span>
@@ -620,24 +702,45 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
             
             {/* Endpoint Setup Card */}
             <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
                     <Table className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-white">Google Apps Script Web App URL</h3>
-                    <p className="text-xs text-slate-400">This URL receives leads instantly from both the server and browser</p>
+                    <p className="text-xs text-slate-400">This Webhook URL receives leads automatically upon student submission</p>
                   </div>
                 </div>
 
-                {gsheetUrl && (
-                  <span className="px-3 py-1 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-400 text-xs font-bold flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Configured</span>
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsGuideOpen(true)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-amber-300 font-semibold border border-slate-700 flex items-center gap-1 cursor-pointer"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    <span>View Setup Steps</span>
+                  </button>
+                  {isWebAppLink && (
+                    <span className="px-3 py-1 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-400 text-xs font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Valid Webhook URL</span>
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* URL Warning if user pasted a spreadsheet URL */}
+              {isSpreadsheetLink && (
+                <div className="p-4 rounded-xl bg-rose-950/70 border border-rose-800 text-rose-300 text-xs flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="block font-bold text-rose-200">Notice: Spreadsheet link detected instead of Web App URL</strong>
+                    You pasted the Google Sheets browser link. Google Sheets cannot receive direct POST requests without an Apps Script Web App.
+                    Click <strong>"Google Sheet Setup Guide"</strong> above to copy the script code and get your <code>/exec</code> Web App URL!
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -645,13 +748,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
                     type="url"
                     value={gsheetUrl}
                     onChange={(e) => setGsheetUrl(e.target.value)}
-                    placeholder="https://script.google.com/macros/s/.../exec"
+                    placeholder="https://script.google.com/macros/s/AKfycbx.../exec"
                     className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-xs font-mono focus:border-amber-500 focus:outline-none"
                   />
                   <button
                     onClick={handleSaveGSheetUrl}
                     disabled={isSavingUrl}
-                    className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                    className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 shrink-0"
                   >
                     {isSavingUrl ? (
                       <>
@@ -702,17 +805,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
                 <ol className="space-y-3 text-xs text-slate-300 list-decimal list-inside leading-relaxed">
                   <li className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
                     <strong className="text-white">Create Google Sheet:</strong> Open{' '}
-                    <a href="https://sheets.new" target="_blank" rel="noreferrer" className="text-amber-400 underline">
-                      sheets.new
+                    <a href="https://sheets.new" target="_blank" rel="noreferrer" className="text-amber-400 underline inline-flex items-center gap-1">
+                      sheets.new <ExternalLink className="w-3 h-3" />
                     </a>{' '}
                     and name it <em>Brainiac Educonsult Leads</em>.
                   </li>
                   <li className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
                     <strong className="text-white">Open Apps Script:</strong> In your sheet menu, click{' '}
-                    <span className="text-amber-400">Extensions &gt; Apps Script</span>.
+                    <span className="text-amber-400 font-semibold">Extensions &gt; Apps Script</span>.
                   </li>
                   <li className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    <strong className="text-white">Paste Code:</strong> Erase any template code and paste the script shown on the right.
+                    <strong className="text-white">Paste Code:</strong> Erase any existing placeholder code and paste the script shown on the right.
                   </li>
                   <li className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
                     <strong className="text-white">Deploy Web App:</strong> Click{' '}
@@ -720,11 +823,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
                     Select type: <span className="text-white font-semibold">Web App</span>.
                     <div className="mt-1 pl-4 text-[11px] text-amber-300">
                       • Execute as: <strong>Me (your email)</strong><br />
-                      • Who has access: <strong>Anyone</strong> (CRITICAL)
+                      • Who has access: <strong className="text-emerald-400 underline">Anyone</strong> (CRITICAL — Allows lead posts without login popups)
                     </div>
                   </li>
                   <li className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    <strong className="text-white">Authorize & Paste:</strong> Authorize permissions, copy the Web App URL (ends in <code>/exec</code>), and paste it into the field above.
+                    <strong className="text-white">Authorize &amp; Paste:</strong> Authorize permissions, copy the Web App URL (ends in <code>/exec</code>), and paste it into the field above.
                   </li>
                 </ol>
               </div>
@@ -732,7 +835,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
               {/* Code Snippet Box */}
               <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 flex flex-col">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-base font-bold text-white">Google Apps Script Code (Code.gs)</h4>
+                  <h4 className="text-base font-bold text-white">Google Apps Script Code (`Code.gs`)</h4>
                   <button
                     onClick={handleCopyScript}
                     className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-colors cursor-pointer"
@@ -829,6 +932,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
         )}
 
       </main>
+
+      {/* Guide Modal */}
+      <GoogleSheetGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        currentUrl={gsheetUrl}
+        onSaveUrl={(newUrl) => {
+          setGsheetUrl(newUrl);
+          handleSaveGSheetUrl();
+        }}
+      />
+
     </div>
   );
 };

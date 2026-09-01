@@ -9,6 +9,7 @@ export interface Lead {
   notes?: string;
   createdAt: string;
   syncedToGoogleSheet?: boolean;
+  lastSyncMessage?: string;
 }
 
 export interface GoogleSheetConfig {
